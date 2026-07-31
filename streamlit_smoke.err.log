@@ -1,1 +1,8 @@
 2026-07-31 16:25:57.042 Uvicorn server started on 127.0.0.1:8501
+2026-07-31 16:45:14.194 Thread 'ThreadPoolExecutor-11_0': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-07-31 16:45:14.282 Thread 'ThreadPoolExecutor-11_0': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-07-31 16:45:16.750 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
