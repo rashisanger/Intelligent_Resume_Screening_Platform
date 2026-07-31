@@ -10,6 +10,19 @@ Contains:
 """
 
 # ---------------------------------------------------------------------------
+# Job matching inputs
+# ---------------------------------------------------------------------------
+
+JOB_DESCRIPTION = """
+We are looking for a Software Engineer with experience in Python,
+Java, SQL, REST APIs, Git, Linux, Docker, AWS and problem solving.
+Experience with Machine Learning is a plus.
+"""
+
+REQUIRED_EXPERIENCE_YEARS = 2
+
+
+# ---------------------------------------------------------------------------
 # Skill Keywords
 # ---------------------------------------------------------------------------
 # Maps each category to a dict of { "match_pattern": "Display Name" }.

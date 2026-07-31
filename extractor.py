@@ -26,7 +26,10 @@ Public API
 import re
 from typing import Dict, List, Optional, Set
 
-import spacy
+try:
+    import spacy
+except ImportError:
+    spacy = None
 
 from shared_data import (
     EDUCATION_KEYWORDS,
@@ -35,8 +38,18 @@ from shared_data import (
     SKILL_KEYWORDS,
 )
 
-# Load spaCy model once at module level
-nlp = spacy.load("en_core_web_sm")
+def _load_spacy_model():
+    """Load spaCy once, falling back when the package or model is unavailable."""
+    if spacy is None:
+        return None
+    try:
+        return spacy.load("en_core_web_sm")
+    except OSError:
+        return spacy.blank("en")
+
+
+# Load spaCy/tokenizer once at module level when available.
+nlp = _load_spacy_model()
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +77,13 @@ def extract_name(text: str) -> str:
     Falls back to the first PERSON entity in the full text.
     """
     if not text:
+        return "Unknown"
+
+    if nlp is None:
+        for line in text.splitlines():
+            candidate = line.strip()
+            if 2 <= len(candidate) <= 60 and not re.search(r"[@\d]", candidate):
+                return candidate
         return "Unknown"
 
     # Check the top of the resume first (name is almost always at the top)
@@ -118,6 +138,14 @@ def extract_phone(text: str) -> str:
     return ""
 
 
+def extract_contact_info(text: str) -> Dict[str, str]:
+    """Return contact info in the shape app.py expects."""
+    return {
+        "email": extract_email(text),
+        "phone": extract_phone(text),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Skill extraction
 # ---------------------------------------------------------------------------
@@ -134,8 +162,11 @@ def extract_skills(text: str) -> List[str]:
     cleaned = clean_text(text)
 
     # Use spaCy to tokenize — gives cleaner token boundaries than raw regex
-    doc = nlp(cleaned)
-    tokenized_text = " ".join(token.text for token in doc)
+    if nlp is None:
+        tokenized_text = cleaned
+    else:
+        doc = nlp(cleaned)
+        tokenized_text = " ".join(token.text for token in doc)
 
     detected_skills: Set[str] = set()
 
@@ -157,8 +188,11 @@ def extract_skills_by_category(text: str) -> Dict[str, List[str]]:
         return {}
 
     cleaned = clean_text(text)
-    doc = nlp(cleaned)
-    tokenized_text = " ".join(token.text for token in doc)
+    if nlp is None:
+        tokenized_text = cleaned
+    else:
+        doc = nlp(cleaned)
+        tokenized_text = " ".join(token.text for token in doc)
 
     result: Dict[str, List[str]] = {}
 
@@ -178,15 +212,15 @@ def extract_skills_by_category(text: str) -> Dict[str, List[str]]:
 # Experience extraction
 # ---------------------------------------------------------------------------
 
-def extract_experience_years(text: str) -> float:
+def extract_experience_years(text: str) -> int:
     """Extract total years of experience from resume text.
 
     Scans for patterns like "5+ years of experience", "3 yrs exp", etc.
     Returns the maximum value found (candidates usually state their total).
-    Returns 0.0 if no experience pattern is detected.
+    Returns 0 if no experience pattern is detected.
     """
     if not text:
-        return 0.0
+        return 0
 
     cleaned = clean_text(text)
     years_found: List[float] = []
@@ -199,7 +233,7 @@ def extract_experience_years(text: str) -> float:
             except (ValueError, TypeError):
                 continue
 
-    return max(years_found) if years_found else 0.0
+    return int(max(years_found)) if years_found else 0
 
 
 def _find_section_text(text: str, section_key: str) -> str:
@@ -287,7 +321,7 @@ def get_max_education_level(text: str) -> int:
 
 def extract_organisations(text: str) -> List[str]:
     """Extract organisation names mentioned in the resume using spaCy NER."""
-    if not text:
+    if not text or nlp is None:
         return []
 
     doc = nlp(text[:3000])  # Limit to avoid slow processing
@@ -318,7 +352,7 @@ def extract_full_profile(text: str) -> Dict:
             "phone": "",
             "skills": [],
             "skills_by_category": {},
-            "experience_years": 0.0,
+            "experience_years": 0,
             "education": [],
             "max_education_level": 0,
             "organisations": [],
